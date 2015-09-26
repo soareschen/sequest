@@ -145,9 +145,6 @@ Sequest.prototype.__write = function (chunk, encoding, cb) {
 
       if (stream.stderr) stream.stderr.pipe(process.stderr)
 
-      var signal
-        , code
-        ;
       if (self.cb) {
         var stdout = bl()
           , stderr = bl()
@@ -155,11 +152,7 @@ Sequest.prototype.__write = function (chunk, encoding, cb) {
         stream.pipe(stdout)
 
         if (stream.stderr) stream.stderr.pipe(stderr)
-        stream.on('exit', function (_code, _signal) {
-          signal = _signal
-          code = _code
-        })
-        stream.on('end', function () {
+        stream.on('exit', function (code, signal) {
           self.emit('exec', e, cmd, code, signal, stdout.toString(), stderr.toString())
           if (self.opts.command && !self.leaveOpen) self.connection.end()
           cb()
@@ -169,15 +162,12 @@ Sequest.prototype.__write = function (chunk, encoding, cb) {
           if (!self.leaveOpen) self.connection.end()
           return self.emit('error', e)
         }
-        stream.on('exit', function (_code, _signal) {
-          signal = _signal
-          code = _code
+        stream.on('exit', function (code, signal) {
           if (code) {
             if (!self.leaveOpen) self.connection.end()
             return self.emit('error', new Error('Exit code non-zero, '+code))
           }
-        })
-        stream.on('end', function () {
+
           self.emit('exec', e, cmd, code, signal)
           if (!code) cb()
         })
